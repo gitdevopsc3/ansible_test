@@ -1,0 +1,5 @@
+# commands/xos_commands.txt
+configure vlan Default delete ports 1-24
+configure vlan Management add ports 1 tagged
+configure snmp sysName ${inventory_hostname}
+# Add your specific commands here

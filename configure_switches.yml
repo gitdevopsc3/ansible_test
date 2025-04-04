@@ -1,0 +1,106 @@
+# playbooks/configure_switches.yml
+---
+- name: Configure Extreme Switches
+  hosts: extreme_switches
+  gather_facts: false
+  serial: 1  # Configure one switch at a time
+
+  vars_files:
+    - ../inventory/group_vars/extreme_switches.yml
+
+  vars_prompt:
+    - name: "extreme_username"
+      prompt: "Enter Extreme switch username"
+      private: no
+    - name: "extreme_password"
+      prompt: "Enter Extreme switch password"
+      private: yes
+      confirm: yes
+
+  vars:
+    command_file: "../commands/xos_commands.txt"
+    log_dir: "../logs"
+
+  pre_tasks:
+    - name: Ensure log directory exists
+      file:
+        path: "{{ log_dir }}"
+        state: directory
+        mode: '0755'
+      delegate_to: localhost
+      run_once: true
+
+    - name: Read commands from file
+      slurp:
+        src: "{{ command_file }}"
+      register: command_content
+      delegate_to: localhost
+      run_once: true
+      no_log: true
+
+    - name: Decode commands
+      set_fact:
+        xos_commands: "{{ command_content.content | b64decode | split('\n') | select('match', '^[^#]') | list }}"
+      run_once: true
+      no_log: true
+
+  tasks:
+    - name: Create individual switch log file
+      file:
+        path: "{{ log_dir }}/{{ inventory_hostname }}.log"
+        state: touch
+      delegate_to: localhost
+
+    - name: Test network connectivity
+      wait_for_connection:
+        timeout: 30
+      register: connection_test
+      ignore_errors: yes
+
+    - name: Log connection result
+      lineinfile:
+        path: "{{ log_dir }}/{{ inventory_hostname }}.log"
+        line: "Connection test at {{ ansible_date_time.iso8601 }}: {{ 'SUCCESS' if connection_test is success else 'FAILED' }}"
+      delegate_to: localhost
+      when: connection_test is defined
+
+    - block:
+        - name: Configure Extreme switches
+          extreme.xos.xos_config:
+            lines: "{{ xos_commands }}"
+            provider:
+              username: "{{ extreme_username }}"
+              password: "{{ extreme_password }}"
+              host: "{{ inventory_host }}"
+            save_when: modified
+          register: config_result
+          no_log: true
+
+        - name: Log configuration results
+          copy:
+            content: |
+              Configuration executed at: {{ ansible_date_time.iso8601 }}
+              Commands executed:
+              {% for cmd in xos_commands %}
+              - {{ cmd }}
+              {% endfor %}
+              Result: {{ config_result | to_nice_json }}
+            dest: "{{ log_dir }}/{{ inventory_hostname }}.log"
+            mode: '0640'
+          delegate_to: localhost
+          when: config_result is defined
+
+      rescue:
+        - name: Log configuration errors
+          copy:
+            content: |
+              ERROR at {{ ansible_date_time.iso8601 }}
+              {{ ansible_failed_result | to_nice_json }}
+            dest: "{{ log_dir }}/{{ inventory_hostname }}_error.log"
+            mode: '0640'
+          delegate_to: localhost
+
+  post_tasks:
+    - name: Final status message
+      debug:
+        msg: "Configuration completed for {{ inventory_hostname }}. See logs in {{ log_dir }}"

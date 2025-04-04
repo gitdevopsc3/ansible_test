@@ -1,0 +1,13 @@
+# templates/xos_base_config.j2
+{# This is a template for common configurations #}
+configure terminal
+hostname {{ inventory_hostname }}
+!
+username {{ extreme_username }} password {{ extreme_password }} privilege 15
+!
+{% for command in xos_commands %}
+{{ command }}
+{% endfor %}
+!
+end
+copy running-config startup-config

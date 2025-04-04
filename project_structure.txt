@@ -1,0 +1,14 @@
+extreme_switch_automation/
+├── ansible.cfg
+├── inventory/
+│   ├── hosts.ini
+│   └── group_vars/
+│       └── extreme_switches.yml
+├── playbooks/
+│   ├── configure_switches.yml
+├── commands/
+│   ├── xos_commands.txt
+├── templates/
+│   └── xos_base_config.j2
+└── logs/
+    └── ansible.log

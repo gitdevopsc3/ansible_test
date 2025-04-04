@@ -1,0 +1,3 @@
+# inventory/group_vars/extreme_switches.yml
+---
+ansible_user: "{{ extreme_username }}"

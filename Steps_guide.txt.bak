@@ -1,0 +1,31 @@
+## STEPS ...
+
+
+1. Create the directory structure
+
+mkdir -p extreme_switch_automation/{inventory/group_vars,playbooks,commands,templates,logs}
+cd extreme_switch_automation
+
+2. Create ansible.cfg
+
+3. Create the inventory file
+
+4. Create group variables (without credentials)
+
+5. Create your XOS commands file
+
+6. Create a base configuration template (optional)
+
+7. Create the main playbook with logging and prompts
+
+
+================================
+Installation and Usage
+
+1. Install required Extreme XOS collection
+
+ansible-galaxy collection install extreme.xos
+
+2. Run the playbook
+
+ansible-playbook playbooks/configure_switches.yml
